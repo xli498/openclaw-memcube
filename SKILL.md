@@ -1,6 +1,6 @@
 ---
 name: memcube
-description: 结构化记忆管理 — 三层分层记忆（L1 痕迹/L2 模式/L3 世界观）的增删查演化，基于 MemOS MemCube 理念适配 OpenClaw 原生生态
+description: 结构化记忆治理与只读诊断参考。用于评估来源、置信度、时效、冲突和演化候选；不替代宿主已有记忆系统，不自动写入长期记忆。
 ---
 
 # MemCube — 结构化记忆管理
@@ -21,7 +21,7 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 
 ## 何时使用
 
-必须使用本 skill 当任务涉及：
+可将本 skill 作为治理参考当任务涉及：
 - **新增记忆** — 用户说"记住xxx"或发现值得持久化的信息
 - **记忆查重** — 写 MEMORY.md 前，先查是否已有类似记录
 - **记忆演化** — 从 L1 daily notes 提取模式升级到 L2 MEMORY.md
@@ -52,14 +52,14 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 
 ## 操作流程
 
-### 新增记忆（add）
+### 新增记忆（治理建议）
 
 ```
-1. 用户说"记住xxx" 或 我观察到值得持久化的信息
-2. 运行: python3 skills/memcube/scripts/memctl.py check "新记忆内容"
-3. 如果有相似记忆 → 对比差异 → 决定合并/覆盖/追加
-4. 写入 MEMORY.md，带完整元数据
-5. 如果来源是 L1 daily notes → 在 daily note 中加 `[✓ 已演化]` 标记
+1. 判断信息是否值得持久化，并遵守宿主的用户确认与权限规则
+2. 优先使用宿主原生检索检查已有事实、场景或原始对话
+3. 如果需要，使用 memctl 的只读 check 作为辅助，不把相似度分数当作裁决
+4. 仅通过宿主已有的受控写入通道保存；不要让本脚本直接改写复杂记忆区
+5. 记录来源、置信度、更新时间和可回查证据
 ```
 
 ### 记忆查重（check）
@@ -74,9 +74,11 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 
 ### 记忆演化（evolve）
 
-触发条件（每会话至少检查一次）：
-- 当前有 L1 daily notes 存在
-- 积累了 2+ 天的 daily notes 且 MEMORY.md 超过 24h 未更新
+可选检查条件：
+- 原始记录中出现跨天重复、经常被引用且未沉淀的经验
+- 当前主记忆系统提示存在待整理或冲突的条目
+
+不要为了满足频率而每会话运行；低价值自动整理会污染长期记忆。
 
 ```
 1. 读取最近 3-7 天的 memory/*.md
@@ -118,11 +120,11 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 | 现有组件 | memcube 作用 |
 |----------|------------|
 | lossless-claw | 对话精确召回 → memcube 用 lcm_grep/lcm_expand_query 查历史细节 |
-| memory_search | 语义搜索 → memcube 用 memory_search 做模糊匹配 |
-| MEMORY.md | L2 长期记忆 → memcube 提供结构化读写 |
-| memory/YYYY-MM-DD.md | L1 每日痕迹 → memcube 负责演化和标记 |
-| save_self_evolution_skill | L3 技能结晶 → memcube 负责 L1→L2 升级，时机成熟再调用 |
-| CORE_RULES.md | L3 核心法则 → memcube 不改动，只读 |
+| 宿主原生检索 | 优先用宿主的精确/语义检索回查证据 |
+| 宿主长期记忆 | MemCube 只提供来源、置信度、时效和冲突治理思路 |
+| 原始记录 | 识别可升级候选，但不要通过正则直接改写插件管理区域 |
+| Skill 结晶 | 证据充分后才形成候选；仍需独立审查与验收 |
+| 核心规则 | 只读参考，不由本工具修改 |
 
 ## 命令速查
 

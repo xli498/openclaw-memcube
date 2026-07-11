@@ -4,12 +4,13 @@
 
 ```bash
 cd ~/.openclaw/workspace
-python3 scripts/memctl.py --help
+# 不带参数会显示可用命令；当前脚本不提供 --help 选项
+python3 scripts/memctl.py
 ```
 
 ## 1. 查重（check）
 
-写入新记忆前，先查重避免重复。
+写入新记忆前，优先使用宿主原生检索回查已有事实；本脚本的查重只适用于简单 Markdown 记忆，结果仅作辅助判断，不能替代来源核验。
 
 ```bash
 $ python3 scripts/memctl.py check "DeepSeek API Key 已配入 openclaw.json"
@@ -141,14 +142,14 @@ L3 Skills:
 
 ## 集成到 OpenClaw
 
-在 AGENTS.md 中添加自动查重规则：
+仅当宿主没有更可靠的原生记忆检索时，才考虑在 AGENTS.md 中采用以下辅助规则：
 
 ```markdown
 ## 记忆写入流程
 
-1. 写入前必须运行 `memctl.py check "内容"` 查重
-2. 相似度 > 0.7 → 跳过或合并
-3. 相似度 0.4-0.7 → 加交叉引用后写入
-4. 相似度 < 0.7 → 安全写入
-5. 每个会话结束时运行 `memctl.py evolve-dry-run` 检查演化
+1. 先通过宿主原生检索回查来源和已有记忆
+2. 可运行 `memctl.py check "内容"` 作为简单 Markdown 辅助诊断
+3. 相似度不是事实裁决；冲突以来源、时间和用户确认优先
+4. 仅通过宿主受控写入通道保存长期记忆
+5. 只在出现跨天重复或待整理信号时运行 `evolve-dry-run`，不要每会话强制执行
 ```
