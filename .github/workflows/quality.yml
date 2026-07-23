@@ -22,3 +22,4 @@ jobs:
         shell: bash
         run: |
           python -m py_compile scripts/*.py
+          bash tests/test_memctl.sh
