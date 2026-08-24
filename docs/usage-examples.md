@@ -19,8 +19,8 @@ $ python3 scripts/memctl.py check "DeepSeek API Key 已配入 openclaw.json"
 查询内容: DeepSeek API Key 已配入 openclaw.json
 ────────────────────────────────────────
 相似度 0.82 | memory/topics/model-api.md
-  "DeepSeek API（生产主力）— 用户自己的 DeepSeek API Key: sk-5368…cc51，
-   已配入 openclaw.json"
+  "DeepSeek API（生产主力）— 使用环境变量 ${DEEPSEEK_API_KEY} 注入，
+   不在记忆或文档中保存明文凭据"
   → 建议: 大概率重复，检查是否需要合并
 
 相似度 0.45 | memory/topics/tools.md

@@ -62,14 +62,6 @@ def parse_memory_entries() -> list[dict]:
         title = match.group(3).strip()
         metadata_str = match.group(4) or ""
 
-        # 跳过已经被 ## 覆盖的 ### 子标题（如果紧跟前一个 ## 条目）
-        if entries and heading_level == 3 and entries[-1]["heading_level"] == 2:
-            # 检查 ### 是否在 ## 的正文区间内
-            prev_end = entries[-1]["end_pos"]
-            if match.start() < prev_end:
-                # ### 是 ## 的子标题，归于 ## 条目
-                continue
-
         # 提取标签
         tags = [t.strip() for t in tags_str.split(",") if t.strip()]
 
@@ -110,10 +102,10 @@ def _parse_metadata(meta_str: str) -> dict:
 def _extract_body(content: str, start: int, heading_level: int) -> str:
     """提取标题后的正文，到下一个同级或更高级标题为止"""
     rest = content[start:]
-    stop_pattern = re.compile(
-        r'\n(#{1,' + str(heading_level) + r'})\s',
-        re.MULTILINE
-    )
+    # Any heading at the same or higher level starts a new entry. A ### entry
+    # must also terminate the preceding ## body, otherwise formal L3 entries
+    # are swallowed by the parent entry.
+    stop_pattern = re.compile(r'\n#{1,' + str(heading_level) + r'}\s')
     stop_match = stop_pattern.search(rest)
     if stop_match:
         return rest[:stop_match.start()]
