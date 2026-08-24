@@ -86,16 +86,11 @@ def parse_memory_entries() -> list[dict]:
 
 def _parse_metadata(meta_str: str) -> dict:
     """解析 @key value 格式的元数据"""
+    matches = list(re.finditer(r"(?:^|\s)@([A-Za-z][\w-]*)(?:\s+|$)", meta_str))
     meta = {}
-    for part in meta_str.split("@"):
-        part = part.strip()
-        if not part:
-            continue
-        if " " in part:
-            key, value = part.split(" ", 1)
-            meta[key.strip()] = value.strip()
-        else:
-            meta[part.strip()] = ""
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(meta_str)
+        meta[match.group(1)] = meta_str[match.end():end].strip()
     return meta
 
 
@@ -138,6 +133,8 @@ def _keyword_match(query: str, text: str) -> float:
 
 def _simple_similarity(query: str, title: str, body: str) -> float:
     """综合相似度：标题匹配权重 0.6 + 关键词匹配权重 0.4"""
+    if query.strip().casefold() == title.strip().casefold():
+        return 1.0
     # 标题 n-gram 相似度（短文本，更精确）
     title_sim = _ngram_similarity(query, title, n=2)
     # 关键词在正文中的覆盖率
@@ -175,9 +172,9 @@ def cmd_check(query: str):
 
     print(f"🔍 发现 {len(results)} 条可能相关的记忆:\n")
     for score, entry in results:
-        if score > 0.4:
+        if score > 0.7:
             icon = "🔴"
-        elif score > 0.2:
+        elif score >= 0.4:
             icon = "🟡"
         else:
             icon = "🟢"
@@ -192,12 +189,12 @@ def cmd_check(query: str):
         print(f"   内容: {body_preview}{'...' if len(entry['body']) > 120 else ''}")
         print()
 
-    high = [r for r in results if r[0] > 0.4]
-    mid = [r for r in results if 0.2 < r[0] <= 0.4]
+    high = [r for r in results if r[0] > 0.7]
+    mid = [r for r in results if 0.4 <= r[0] <= 0.7]
     if high:
-        print(f"⚠️  {len(high)} 条高度相似（>40%），建议合并或跳过")
+        print(f"⚠️  {len(high)} 条高度相似（>70%），建议合并或跳过")
     elif mid:
-        print(f"💡 {len(mid)} 条中度相关（20-40%），可考虑加交叉引用")
+        print(f"💡 {len(mid)} 条中度相关（40-70%），可考虑加交叉引用")
     else:
         print("✅ 所有匹配项相似度较低，可以安全写入")
 
@@ -246,12 +243,13 @@ def cmd_list():
         print("   提示: 旧格式（无 <!-- @... --> 元数据）的 ## 条目也能识别")
         return
 
-    active = [e for e in entries if e["metadata"].get("status", "active") != "outdated"]
+    active = [e for e in entries if e["metadata"].get("status", "active") == "active"]
     outdated = [e for e in entries if e["metadata"].get("status") == "outdated"]
+    archived = [e for e in entries if e["metadata"].get("status") == "archived"]
     legacy = [e for e in entries if not e["metadata"]]
 
     print(f"🧠 MEMORY.md: {len(entries)} 条记忆")
-    print(f"   🟢 活跃: {len(active)} | 🔴 过时: {len(outdated)}")
+    print(f"   🟢 活跃: {len(active)} | 🔴 过时: {len(outdated)} | 📦 归档: {len(archived)}")
     if legacy:
         print(f"   ⚡ 旧格式（无元数据）: {len(legacy)}")
     print(f"\n{'':4} {'确信度':10} {'创建日期':12} {'标题'}")
@@ -289,8 +287,12 @@ def cmd_evolve_dry_run():
     unevolved = 0
     for fname in recent:
         fpath = os.path.join(MEMORY_DIR, fname)
-        with open(fpath, "r", encoding="utf-8") as f:
-            content = f.read()
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            print(f"  ⚠️ {fname}: 非 UTF-8，已跳过")
+            continue
         lines = content.strip().count('\n') + 1
         evolved = "[✓ 已演化]" in content
         icon = "✅" if evolved else "📝"
@@ -301,7 +303,7 @@ def cmd_evolve_dry_run():
 
     if os.path.exists(MEMORY_MD):
         mtime = datetime.fromtimestamp(os.path.getmtime(MEMORY_MD))
-        hours = (datetime.now() - mtime).total_seconds() / 3600
+        hours = max(0, (datetime.now() - mtime).total_seconds() / 3600)
         print(f"\n📄 MEMORY.md 最后更新: {mtime.strftime('%Y-%m-%d %H:%M')} ({hours:.1f} 小时前)")
         if hours > 24:
             print("💡 超过 24 小时未更新，建议执行记忆演化")
@@ -328,8 +330,12 @@ def cmd_evolve():
 
     for fname in files:
         fpath = os.path.join(MEMORY_DIR, fname)
-        with open(fpath, "r", encoding="utf-8") as f:
-            content = f.read()
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                content = f.read()
+        except UnicodeDecodeError:
+            print(f"⚠️ 跳过非 UTF-8 daily note: {fname}")
+            continue
         file_contents[fname] = content
 
         if "[✓ 已演化]" in content:
@@ -364,8 +370,9 @@ def cmd_stats():
     """统计概览"""
     entries = parse_memory_entries()
 
-    active = [e for e in entries if e["metadata"].get("status", "active") != "outdated"]
+    active = [e for e in entries if e["metadata"].get("status", "active") == "active"]
     outdated = [e for e in entries if e["metadata"].get("status") == "outdated"]
+    archived = [e for e in entries if e["metadata"].get("status") == "archived"]
     legacy = [e for e in entries if not e["metadata"]]
     verified = [e for e in entries if e["metadata"].get("confidence") == "verified"]
 
@@ -382,6 +389,7 @@ def cmd_stats():
     print(f"  总记忆条目:     {len(entries)}")
     print(f"  活跃:           {len(active)} 🟢")
     print(f"  过时:           {len(outdated)} 🔴")
+    print(f"  归档:           {len(archived)} 📦")
     print(f"  旧格式(无元数据): {len(legacy)} ⚡")
     print(f"  已确认:         {len(verified)} ✅")
     print(f"  L2 条目 (##):   {l2}")

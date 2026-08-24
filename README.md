@@ -29,10 +29,7 @@ openclaw-memcube/
 ├── SKILL.md                 # 核心指令：OpenClaw 技能定义
 ├── scripts/
 │   └── memctl.py            # 记忆控制台（零依赖 Python）
-├── skills/
-│   ├── auto-model-router/   # 自动路由：重型→主力模型，轻型→子Agent
-│   ├── active-push/         # 主动推送：cron + sessions_send
-│   └── session-graph/       # 会话拓扑可视化
+├── skills/                  # 独立的参考 Skill；不由 memctl 执行或安装
 └── references/              # 参考资料
 ```
 
@@ -51,76 +48,34 @@ git clone https://github.com/xli498/openclaw-memcube.git memcube
 
 ### memctl.py — 记忆控制台
 
-memctl.py 是一个零依赖的 Python 脚本，提供记忆的增删查演化功能。
+memctl.py 是一个零依赖、**只读**的 Python 脚本，提供查重、搜索、列表和演化候选检查；它不新增、删除或改写记忆文件。
 
 ```bash
 # 查重（写入前检查是否已有类似记忆）
 python3 skills/memcube/scripts/memctl.py check "用户喜欢用 DeepSeek V4 Pro 模型"
 
-# 实际输出示例：
-#  Searching memory for: "用户喜欢用 DeepSeek V4 Pro 模型"
-#  Found 2 potential matches:
-#    [0.82] [模型偏好] 主力模型为 deepseek/deepseek-v4-pro (MEMORY.md:45)
-#    [0.56] [配置] DeepSeek API 配置 (MEMORY.md:120)
-#  ⚠️ 第1条相似度>0.7，建议合并而非新增。
+# 输出会列出匹配条目的标题、标签、元数据摘要与相似度；相似度 > 0.7
+# 仅表示“值得人工复核”，不是自动写入或合并操作。
 
 # 搜索
 python3 skills/memcube/scripts/memctl.py search "代理配置"
 
-# 实际输出示例：
-#  Searching for: "代理配置"
-#  Found 3 results:
-#    [1] [网络] Mihomo 代理端口 7890, envProxy 模式 ▸ MEMORY.md:78
-#    [2] [踩坑] explicit-proxy 与 undici 不兼容 ▸ .learnings/ERRORS.md:12
-#    [3] [TTS] edge-tts 代理配置 port 5050 ▸ memory/2025-05-31.md
+# 只搜索当前工作区的 MEMORY.md 结构化条目，不递归扫描其他文件。
 
 # 列出所有记忆
 python3 skills/memcube/scripts/memctl.py list
 
-# 实际输出示例：
-#  ══════════════════════════════════════════════
-#    Memory Index — 23 entries
-#  ══════════════════════════════════════════════
-#    [ACTIVE    ] 模型偏好: deepseek-v4-pro       @verified 2025-05-20
-#    [ACTIVE    ] Mihomo 代理配置                  @verified 2025-05-22
-#    [ACTIVE    ] 微信+QQ 双渠道                   @verified 2025-05-25
-#    [OUTDATED  ] OpenRouter 配置 (已迁移到 DeepSeek) @2025-05-15
-#    [SPECULATIVE] MiMo 模型表现评估               @speculative 2025-06-01
-#  ══════════════════════════════════════════════
+# 输出会区分 active、outdated、archived 和旧格式条目。
 
 # 演化检查（哪些 L1 需要升级到 L2）
 python3 skills/memcube/scripts/memctl.py evolve-dry-run
 
-# 实际输出示例：
-#  Scanning daily notes for patterns...
-#    memory/2025-05-31.md: 3 potential patterns
-#    memory/2025-05-30.md: 1 potential pattern
-#    memory/2025-05-29.md: skipped (already evolved)
-#  ─────────────────────────────────────
-#  Candidates for L1→L2 evolution:
-#    [0.91] "HTTP Header 中文字符导致 ByteString 错误" (appeared 3 times)
-#    [0.85] "插件去重需要完整重启进程" (appeared 2 times)
-#    [0.72] "MiMo reasoning=True 循环问题" (appeared 4 times)
+# 检查最近 7 天的 UTF-8 daily notes 是否标记为“已演化”；不会生成候选分数或修改文件。
 
 # 统计
 python3 skills/memcube/scripts/memctl.py stats
 
-# 实际输出示例：
-#  Memory Statistics
-#  ─────────────────
-#  Total memories:    23
-#  Active:            18
-#  Outdated:           3
-#  Archived:           2
-#  By confidence:
-#    Verified:        15
-#    Inferred:         5
-#    Speculative:      3
-#  By source:
-#    User:            12
-#    Observed:         7
-#    Derived:          4
-#  L1 daily notes:    14 files (2025-05-20 ~ 2025-06-02)
+# 输出总条目、active/outdated/archived、已确认条目、L2/L3 数量和标签分布。
 ```
 
 ## 记忆记录格式
