@@ -44,6 +44,18 @@ cd ~/.openclaw/workspace/skills
 git clone https://github.com/xli498/openclaw-memcube.git memcube
 ```
 
+仅想先在克隆目录中试用时，不需要安装 Skill：
+
+```bash
+git clone https://github.com/xli498/openclaw-memcube.git
+cd openclaw-memcube
+OPENCLAW_WORKSPACE=/path/to/your/workspace python3 scripts/memctl.py stats
+```
+
+安装到 `~/.openclaw/workspace/skills/memcube` 后，以下示例从
+`~/.openclaw/workspace` 目录执行；克隆目录试用时，将命令中的
+`skills/memcube/` 替换为当前目录下的 `scripts/`。
+
 ## 使用指南
 
 ### memctl.py — 记忆控制台
@@ -113,7 +125,9 @@ python3 skills/memcube/scripts/memctl.py stats
 
 ## 生产状态
 
-每天在 WeChat、QQ Bot、小艺渠道上运行。
+本仓库不会自行运行、安装或接入 WeChat、QQ Bot、小艺等渠道。它提供的是
+只读 Markdown 诊断参考；任何生产接入都必须由使用者在自己的运行环境中审查、
+配置并验证。
 
 ## License
 
