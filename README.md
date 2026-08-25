@@ -58,6 +58,14 @@ OPENCLAW_WORKSPACE=/path/to/your/workspace python3 scripts/memctl.py stats
 
 ## 使用指南
 
+### 指定工作区
+
+`OPENCLAW_WORKSPACE` 用于指定要读取的 OpenClaw 工作区。工具会从该目录读取 `MEMORY.md` 和 `memory/YYYY-MM-DD.md`；未设置时默认使用 `~/.openclaw/workspace`。从克隆目录直接试用时，建议显式指定它：
+
+```bash
+OPENCLAW_WORKSPACE=/path/to/your/workspace python3 scripts/memctl.py search "关键词"
+```
+
 ### memctl.py — 记忆控制台
 
 memctl.py 是一个零依赖、**只读**的 Python 脚本，提供查重、搜索、列表和演化候选检查；它不新增、删除或改写记忆文件。
