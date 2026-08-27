@@ -1,5 +1,7 @@
 # memctl.py 使用示例
 
+以下输出均为对 `fixtures/demo-workspace` 实际运行的结果（`OPENCLAW_WORKSPACE` 指向该目录），可作为输出格式参考；具体数字以你的工作区为准。
+
 ## 环境准备
 
 ```bash
@@ -8,136 +10,105 @@ cd ~/.openclaw/workspace
 python3 scripts/memctl.py
 ```
 
+在克隆目录中试用时，用 `OPENCLAW_WORKSPACE` 指向任意工作区：
+
+```bash
+OPENCLAW_WORKSPACE=/path/to/your/workspace python3 scripts/memctl.py stats
+```
+
 ## 1. 查重（check）
 
 写入新记忆前，优先使用宿主原生检索回查已有事实；本脚本的查重只适用于简单 Markdown 记忆，结果仅作辅助判断，不能替代来源核验。
 
-```bash
-$ python3 scripts/memctl.py check "DeepSeek API Key 已配入 openclaw.json"
+```text
+$ python3 scripts/memctl.py check "受控代理配置"
 
-正在搜索相似记忆...
-查询内容: DeepSeek API Key 已配入 openclaw.json
-────────────────────────────────────────
-相似度 0.82 | memory/topics/model-api.md
-  "DeepSeek API（生产主力）— 使用环境变量 ${DEEPSEEK_API_KEY} 注入，
-   不在记忆或文档中保存明文凭据"
-  → 建议: 大概率重复，检查是否需要合并
+🔍 发现 1 条可能相关的记忆:
 
-相似度 0.45 | memory/topics/tools.md
-  "OpenRouter Claude/GPT 代理配置 — OpenRouter provider 配置..."
-  → 建议: 相关但不重复，可加交叉引用
-────────────────────────────────────────
-结论: 相似度 > 0.7，大概率重复，建议合并或跳过
+🔴 相似度: 100.00% | @verified | 2026-07-01 | [active]
+   标题: 受控代理配置
+   标签: 网络
+   内容: - 代理变更前执行最小可逆验证，并记录验证证据。
+
+⚠️  1 条高度相似（>70%），建议合并或跳过
 ```
 
 ## 2. 搜索（search）
 
 精确搜索历史记忆。
 
-```bash
-$ python3 scripts/memctl.py search "代理配置"
+```text
+$ python3 scripts/memctl.py search "代理"
 
-搜索关键词: 代理配置
-────────────────────────────────────────
-[memory/topics/network.md] 代理与网络
-  - Mihomo 代理: http://127.0.0.1:7890
-  - 出口 IP: 日本（动态变化）
-  - 用途: 访问 Gemini API、Twitter/X、YouTube、GitHub
+🔍 找到 1 条匹配 '代理' 的记忆:
 
-[memory/topics/tools.md] 工具配置
-  - OpenRouter per-provider proxy + Mihomo 代理路由
-  - 必须用 env-proxy，不能用 explicit-proxy
-
-[memory/topics/lessons.md] 教训与经验
-  - 2026-06-01: per-provider proxy 配置踩坑
-  - explicit-proxy 模式跟 Node.js undici 不兼容
-────────────────────────────────────────
-共找到 3 条相关记忆
+  [L2] 受控代理配置 (匹配 2 次)
+       @verified | 2026-07-01 | [active] | 标签: 网络
+       - 代理变更前执行最小可逆验证，并记录验证证据。
 ```
 
 ## 3. 列表（list）
 
 列出所有记忆及其元数据。
 
-```bash
+```text
 $ python3 scripts/memctl.py list
 
-MEMORY.md 记忆索引 (共 7 个主题)
-────────────────────────────────────────
-[feedback] lessons — 教训、失败经验、纠错记录 (13行)
-[project]  evolution — 进化协议 (31行)
-[project]  channels — 渠道配置 (11行)
-[project]  考研 — 考研相关 (9行)
-[reference] tools — 工具配置 (29行)
-[reference] network — 代理与网络 (24行)
-[reference] model-api — 模型与 API 配置 (21行)
-[user]     user-preferences — 用户偏好 (16行)
-────────────────────────────────────────
-总计: 164 行 / 8 个主题文件
+🧠 MEMORY.md: 3 条记忆
+   🟢 活跃: 2 | 🔴 过时: 1 | 📦 归档: 0
+
+     确信度        创建日期         标题
+-----------------------------------------------------------------
+🟢   verified   2026-07-01   受控代理配置
+🟢   inferred   2026-07-02   错误复盘规则
+🔴   verified   2026-06-01   旧模型路由
+
+⚠️  1 条过时记忆待清理
 ```
 
 ## 4. 演化检查（evolve-dry-run）
 
-检查哪些 L1 daily notes 需要升级到 L2 MEMORY.md。
+检查最近 7 天的 L1 daily notes 是否已演化到 MEMORY.md。
 
-```bash
+```text
 $ python3 scripts/memctl.py evolve-dry-run
 
-演化分析 (dry-run)
-────────────────────────────────────────
-L1 痕迹文件:
-  - memory/2026-05-31.md (45行, 2天前)
-  - memory/2026-06-01.md (120行, 今天)
+📋 最近 1 天的 daily notes:
 
-待演化项:
-  1. [2026-05-31] MiMo degenerate loop 处理经验
-     → 建议: 已在 lessons.md 中记录，跳过
-  
-  2. [2026-06-01] GitHub 仓库创建与推广
-     → 建议: 新模式，可演化到 MEMORY.md [project] 分类
-  
-  3. [2026-06-01] WeChat 重复回复根因（双插件实例）
-     → 建议: 新教训，应演化到 lessons.md
+  📝 2026-07-03.md: 4 行 [待演化]
 
-建议操作:
-  - 执行 evolve 将第 2、3 项写入 MEMORY.md
-  - 第 1 项已存在，跳过
-────────────────────────────────────────
+📄 MEMORY.md 最后更新: 2026-08-27 11:12 (1.4 小时前)
+
+⚠️  1 天的 daily notes 尚未演化
 ```
+
+说明：`evolve-dry-run` 只报告 daily notes 的行数与演化状态（按内容中是否含 `[✓ 已演化]` 标记判断）；它不会给出“建议演化到哪个主题文件”的结论。话题归并由 `evolve` 的关键词统计辅助，最终由 agent 判断。
 
 ## 5. 统计（stats）
 
 查看记忆系统整体状态。
 
-```bash
+```text
 $ python3 scripts/memctl.py stats
 
-记忆系统统计
-────────────────────────────────────────
-MEMORY.md:
-  - 总行数: 89
-  - 主题数: 8
-  - 最大限制: 200 行
-  - 使用率: 44.5%
-  
-L1 Daily Notes:
-  - 文件数: 3
-  - 总大小: 12.4 KB
-  - 时间跨度: 2026-05-31 ~ 2026-06-01
-  
-L2 Topic Files:
-  - 文件数: 8
-  - 总大小: 8.2 KB
-  - 最近更新: 2026-06-01
-  
-L3 Skills:
-  - 已安装: 127
-  - 自建: 5
-────────────────────────────────────────
-记忆健康度: 良好 ✅
-  - 覆盖率: 7/8 核心领域已覆盖
-  - 新鲜度: 最近 24h 内有更新
-  - 冗余度: 0 条重复记录
+🧠 MemCube 记忆统计
+========================================
+  总记忆条目:     3
+  活跃:           2 🟢
+  过时:           1 🔴
+  归档:           0 📦
+  旧格式(无元数据): 0 ⚡
+  已确认:         2 ✅
+  L2 条目 (##):   3
+  L3 条目 (###):  0
+
+📊 标签分布 (Top 10):
+  #网络: 1
+  #学习: 1
+  #历史: 1
+
+📄 MEMORY.md: 0.5 KB
+📋 Daily Notes: 1 天, 0.1 KB
 ```
 
 ## 集成到 OpenClaw

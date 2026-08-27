@@ -28,6 +28,28 @@ MEMORY_MD = os.path.join(WORKSPACE, "MEMORY.md")
 MEMORY_DIR = os.path.join(WORKSPACE, "memory")
 
 
+def _daily_note_files():
+    """返回 memory/ 下合法日期的 daily notes（YYYY-MM-DD.md），按日期倒序。
+
+    仅匹配文件名形状不够：`9999-99-99.md` 也能通过正则，必须再用
+    strptime 验证真实日历日期。
+    """
+    files = []
+    try:
+        names = os.listdir(MEMORY_DIR)
+    except OSError:
+        return []
+    for f in names:
+        if not re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f):
+            continue
+        try:
+            datetime.strptime(f[:-3], "%Y-%m-%d")
+        except ValueError:
+            continue
+        files.append(f)
+    return sorted(files, reverse=True)
+
+
 def parse_memory_entries() -> list[dict]:
     """解析 MEMORY.md 中的所有记忆条目。
     兼容两种格式：
@@ -272,10 +294,7 @@ def cmd_evolve_dry_run():
         print("📭 memory/ 目录不存在")
         return
 
-    files = sorted(
-        [f for f in os.listdir(MEMORY_DIR) if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)],
-        reverse=True
-    )
+    files = _daily_note_files()
 
     if not files:
         print("📭 没有 daily notes")
@@ -320,10 +339,7 @@ def cmd_evolve():
         print("📭 memory/ 目录不存在")
         return
 
-    files = sorted(
-        [f for f in os.listdir(MEMORY_DIR) if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)],
-        reverse=True
-    )[:7]
+    files = _daily_note_files()[:7]
 
     all_keywords = Counter()
     file_contents = {}
@@ -405,8 +421,7 @@ def cmd_stats():
         print(f"\n📄 MEMORY.md: {size_kb:.1f} KB")
 
     if os.path.isdir(MEMORY_DIR):
-        daily_files = [f for f in os.listdir(MEMORY_DIR)
-                       if re.match(r'^\d{4}-\d{2}-\d{2}\.md$', f)]
+        daily_files = _daily_note_files()
         total_kb = sum(os.path.getsize(os.path.join(MEMORY_DIR, f)) / 1024
                        for f in daily_files)
         print(f"📋 Daily Notes: {len(daily_files)} 天, {total_kb:.1f} KB")
