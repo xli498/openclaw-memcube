@@ -26,6 +26,17 @@ EOF
 OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" list | grep -q "Child One"
 OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" list | grep -q "Child Two"
 OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" stats | grep -q "总记忆条目:     3"
+# A ## parent entry's body must stop at the following ### child entry;
+# otherwise the child's body is swallowed and search over-matches.
+OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" search "Child body one" | grep -q "找到 1 条匹配"
+# Empty / whitespace-only search and check arguments must be rejected instead
+# of reporting false matches for every entry.
+! OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" search "" > /dev/null 2>&1
+MSG="$(OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" check "" 2>&1 || true)"
+echo "$MSG" | grep -q "非空参数"
+# A non-UTF-8 MEMORY.md must degrade gracefully instead of crashing.
+printf '## Bad\n\xff\xfe\n' > "$TMP_WS/MEMORY.md"
+OPENCLAW_WORKSPACE="$TMP_WS" python3 "$ROOT/scripts/memctl.py" list 2>/dev/null | grep -q "暂无"
 # Exact titles must reach the documented duplicate threshold; archived entries
 # must not inflate active counts, and metadata values may contain @ characters.
 cat > "$TMP_WS/MEMORY.md" <<'EOF'

@@ -59,8 +59,15 @@ def parse_memory_entries() -> list[dict]:
     if not os.path.exists(MEMORY_MD):
         return []
 
-    with open(MEMORY_MD, "r", encoding="utf-8") as f:
-        content = f.read()
+    try:
+        with open(MEMORY_MD, "r", encoding="utf-8") as f:
+            content = f.read()
+    except UnicodeDecodeError:
+        print("⚠️ MEMORY.md 非 UTF-8 编码，无法解析（已跳过）", file=sys.stderr)
+        return []
+    except OSError as exc:
+        print(f"⚠️ 无法读取 MEMORY.md: {exc}（已跳过）", file=sys.stderr)
+        return []
 
     # 匹配 ## 或 ### 开头的标题行
     # group(1): heading level (## or ###)
@@ -91,7 +98,7 @@ def parse_memory_entries() -> list[dict]:
         metadata = _parse_metadata(metadata_str)
 
         # 获取该条目后的内容
-        body = _extract_body(content, match.end(), heading_level)
+        body = _extract_body(content, match.end())
 
         entries.append({
             "heading_level": heading_level,
@@ -116,13 +123,15 @@ def _parse_metadata(meta_str: str) -> dict:
     return meta
 
 
-def _extract_body(content: str, start: int, heading_level: int) -> str:
-    """提取标题后的正文，到下一个同级或更高级标题为止"""
+def _extract_body(content: str, start: int) -> str:
+    """提取标题后的正文，到下一个条目标题为止。
+
+    任何 ## / ### 标题都会终止当前正文：## 条目必须被其后的 ### 子条目
+    终止，否则 L3 子条目内容会被父条目正文吞并（注意 `#{1,2}` 匹配不了
+    `###`，回溯后第三个 # 不是空白字符）。
+    """
     rest = content[start:]
-    # Any heading at the same or higher level starts a new entry. A ### entry
-    # must also terminate the preceding ## body, otherwise formal L3 entries
-    # are swallowed by the parent entry.
-    stop_pattern = re.compile(r'\n#{1,' + str(heading_level) + r'}\s')
+    stop_pattern = re.compile(r'\n#{1,3}\s')
     stop_match = stop_pattern.search(rest)
     if stop_match:
         return rest[:stop_match.start()]
@@ -449,9 +458,12 @@ def main():
     }
 
     if cmd in commands:
-        if cmd in ("check", "search") and not args:
-            print(f"❌ {cmd} 命令需要参数")
-            sys.exit(1)
+        if cmd in ("check", "search"):
+            # 空字符串参数（如 search ""）也会绕过 not args 校验，
+            # 且 "".count 语义会让所有条目误报匹配，必须按内容判空
+            if not " ".join(args).strip():
+                print(f"❌ {cmd} 命令需要非空参数")
+                sys.exit(1)
         commands[cmd]()
     else:
         print(f"❌ 未知命令: {cmd}")
