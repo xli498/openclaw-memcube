@@ -82,11 +82,13 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 
 ```
 1. 读取最近 3-7 天的 memory/*.md
-2. 提取重复出现的话题（用 memory_search 辅助）
+2. 提取重复出现的话题（用宿主原生检索辅助）
 3. 识别新规律/偏好/决策
 4. 运行 check 确认不重复
-5. 写入 MEMORY.md（带 @source: derived）
-6. 在来源 daily notes 中标记 [✓ 已演化]
+5. 人工复核来源、置信度和用户确认要求
+6. 通过宿主已有的受控写入通道保存 MEMORY.md，并在来源 daily notes 中记录回溯标记
+
+`memctl.py evolve` 和 `evolve-dry-run` 都只输出候选，不会写入 `MEMORY.md`，也不会标记 daily notes。
 ```
 
 ### 冲突裁决（resolve）
@@ -129,18 +131,18 @@ L3 世界观 (Models)    →  skills/ + CORE_RULES.md  → 可执行的技能、
 ## 命令速查
 
 ```bash
-# 查重
-python3 skills/memcube/scripts/memctl.py check "记忆内容"
+# 查重（从仓库根目录执行；安装到 Skills 目录后使用 skills/memcube/scripts/）
+python3 scripts/memctl.py check "记忆内容"
 
 # 搜索
-python3 skills/memcube/scripts/memctl.py search "关键词"
+python3 scripts/memctl.py search "关键词"
 
 # 列出所有记忆（带元数据）
-python3 skills/memcube/scripts/memctl.py list
+python3 scripts/memctl.py list
 
 # 演化检查（哪些 L1 需要升级到 L2）
-python3 skills/memcube/scripts/memctl.py evolve-dry-run
+python3 scripts/memctl.py evolve-dry-run
 
 # 统计
-python3 skills/memcube/scripts/memctl.py stats
+python3 scripts/memctl.py stats
 ```
